@@ -38,10 +38,10 @@ var app = http.createServer(function(request, response) {
                     var html = template.html(title, list,
                         `<h2>${sanitizeTitle}</h2> ${sanitizeDescription}`,
                         `<a href="/create">CREATE</a> <a href="/update?id=${sanitizeTitle}">UPDATE</a>
-                       <form action="delete_process" method="post">
-                        <input type="hidden" name="id" value="${sanitizeTitle}">
-                        <input type="submit" value="DELETE">
-                       </form>`
+                         <form action="delete_process" method="post">
+                          <input type="hidden" name="id" value="${sanitizeTitle}">
+                          <input type="submit" value="DELETE">
+                         </form>`
                     );
                     response.writeHead(200);
                     response.end(html);
@@ -65,6 +65,7 @@ var app = http.createServer(function(request, response) {
             </form>`, '');
             response.writeHead(200);
             response.end(html);
+
         });
     } else if (pathName === '/create_process') {
         var body = '';
