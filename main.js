@@ -4,6 +4,7 @@ var url = require('url');
 var qs = require('querystring');
 var template = require('./lib/template.js');
 var path = require('path');
+var sanitizeHtml = require('sanitize-html');
 
 var app = http.createServer(function(request, response) {
     var _url = request.url;
@@ -23,18 +24,22 @@ var app = http.createServer(function(request, response) {
                 response.end(html);
             });
         } else {
-            //쿼리에 따른 다른 페이지
+            //쿼리에 따른 다른 페이지 (데이터)
             fs.readdir('./data', function(err, filelist) {
                 var filteredId = path.parse(queryData.id).base;
                 fs.readFile(`data/${filteredId}`, 'utf-8', function(err, data) {
                     var title = queryData.id;
+                    var sanitizeTitle = sanitizeHtml(title);
+                    var sanitizeDescription = sanitizeHtml(data, {
+                        allowedTags: ['h1']
+                    });
                     var description = data;
                     var list = template.list(filelist);
                     var html = template.html(title, list,
-                        `<h2>${title}</h2> ${description}`,
-                        `<a href="/create">CREATE</a> <a href="/update?id=${title}">UPDATE</a>
+                        `<h2>${sanitizeTitle}</h2> ${sanitizeDescription}`,
+                        `<a href="/create">CREATE</a> <a href="/update?id=${sanitizeTitle}">UPDATE</a>
                        <form action="delete_process" method="post">
-                        <input type="hidden" name="id" value="${title}">
+                        <input type="hidden" name="id" value="${sanitizeTitle}">
                         <input type="submit" value="DELETE">
                        </form>`
                     );
