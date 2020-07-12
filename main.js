@@ -131,6 +131,34 @@ var app = http.createServer(function(request, response) {
                 response.end(template);
             });
         });
+    } else if (pathName === '/update_process') {
+        var body = '';
+
+        //서버쪽에서 데이터 수신할 때마다 function(data) 호출
+        // -> data라는 인자를 통해 수신한 데이터 추출
+        request.on('data', function(data) {
+            body += data;
+            //데이터가 너무 크면 연결 해제
+            if (body.length > 1e6) {
+                request.connection.destroy();
+            }
+        });
+        //더이상 수신할 데이터가 없으면 function() 호출
+        request.on('end', function() {
+            var post = qs.parse(body);
+            var id = post.id;
+            var title = post.title;
+            var description = post.description;
+            //${id} 라는 파일을 ${title} 이라는 파일로 이름을 변경
+            fs.rename(`data/${id}`, `data/${title}`, function(error) {
+                fs.writeFile(`data/${title}`, description, 'utf-8', function(err) {
+                    response.writeHead(302, { Location: `/?id=${title}` });
+                    response.end();
+                });
+            });
+        });
+
+
     } else {
         response.writeHead(400);
         response.end('404 not found');
