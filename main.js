@@ -2,40 +2,8 @@ var http = require('http');
 var fs = require('fs');
 var url = require('url');
 var qs = require('querystring');
-
-var template = {
-    html: function(title, list, body, control) {
-        return `
-        <!doctype html>
-        <html>
-        <head>
-            <title>WEB - ${title}</title>
-            <meta charset="utf-8">
-        </head>
-        <body>
-            <h1><a href="/">WEB</a></h1>
-            ${list}
-            ${control}
-            ${body}
-        </body>
-        </html>
-        `;
-    },
-    list: function(filelist) {
-        var list = '<ul>';
-        var i = 0;
-        while (i < filelist.length) {
-            list = list + `<li><a href="/?id=${filelist[i]}">${filelist[i]}</a></li>`
-            i++;
-        }
-        list = list + '</ul>';
-
-        return list;
-    }
-}
-
-
-
+var template = require('./lib/template.js');
+var path = require('path');
 
 var app = http.createServer(function(request, response) {
     var _url = request.url;
@@ -57,7 +25,8 @@ var app = http.createServer(function(request, response) {
         } else {
             //쿼리에 따른 다른 페이지
             fs.readdir('./data', function(err, filelist) {
-                fs.readFile(`data/${queryData.id}`, 'utf-8', function(err, data) {
+                var filteredId = path.parse(queryData.id).base;
+                fs.readFile(`data/${filteredId}`, 'utf-8', function(err, data) {
                     var title = queryData.id;
                     var description = data;
                     var list = template.list(filelist);
@@ -118,7 +87,9 @@ var app = http.createServer(function(request, response) {
 
     } else if (pathName === '/update') {
         fs.readdir('./data', function(err, filelist) {
-            fs.readFile(`data/${queryData.id}`, 'utf-8', function(err, description) {
+            var filteredId = path.parse(queryData.id).base;
+            //보안 이슈 방지
+            fs.readFile(`data/${filteredId}`, 'utf-8', function(err, description) {
                 var title = queryData.id;
                 var list = template.list(filelist);
                 var html = template.html(title, list,
@@ -180,8 +151,9 @@ var app = http.createServer(function(request, response) {
         request.on('end', function() {
             var post = qs.parse(body);
             var id = post.id;
+            var filteredId = path.parse(id).base;
             //지정한 파일 삭제
-            fs.unlink(`data/${id}`, function(err) {
+            fs.unlink(`data/${filteredId}`, function(err) {
                 //홈 페이지로 리다이렉션
                 response.writeHead(302, { Location: `/` });
                 response.end();
