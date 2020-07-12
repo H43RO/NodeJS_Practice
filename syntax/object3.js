@@ -1,8 +1,3 @@
-var v1 = 'v1';
-//Many codes
-v1 = 'haero';
-var v2 = 'v2';
-
 var p = {
     v1: 'v1',
     v2: 'v2',
