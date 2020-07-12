@@ -60,7 +60,12 @@ var app = http.createServer(function(request, response) {
                     var list = templateList(filelist);
                     var template = templateHTML(title, list,
                         `<h2>${title}</h2> ${description}`,
-                        `<a href="/create">CREATE</a> <a href="/update?id=${title}">UPDATE</a>`);
+                        `<a href="/create">CREATE</a> <a href="/update?id=${title}">UPDATE</a>
+                       <form action="delete_process" method="post">
+                        <input type="hidden" name="id" value="${title}">
+                        <input type="submit" value="DELETE">
+                       </form>`
+                    );
                     response.writeHead(200);
                     response.end(template);
                 });
@@ -156,8 +161,29 @@ var app = http.createServer(function(request, response) {
                 })
             });
         });
+    } else if (pathName === '/delete_process') {
+        var body = '';
 
-
+        //서버쪽에서 데이터 수신할 때마다 function(data) 호출
+        // -> data라는 인자를 통해 수신한 데이터 추출
+        request.on('data', function(data) {
+            body += data;
+            //데이터가 너무 크면 연결 해제
+            if (body.length > 1e6) {
+                request.connection.destroy();
+            }
+        });
+        //더이상 수신할 데이터가 없으면 function() 호출
+        request.on('end', function() {
+            var post = qs.parse(body);
+            var id = post.id;
+            //지정한 파일 삭제
+            fs.unlink(`data/${id}`, function(err) {
+                //홈 페이지로 리다이렉션
+                response.writeHead(302, { Location: `/` });
+                response.end();
+            });
+        });
     } else {
         response.writeHead(400);
         response.end('404 not found');
