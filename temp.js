@@ -39,6 +39,7 @@ var app = http.createServer(function(request, response) {
     var pathName = url.parse(_url, true).pathname;
 
     if (pathName === '/') {
+
         if (queryData.id === undefined) {
             //홈 페이지
             fs.readdir('./data', function(err, filelist) {
@@ -75,7 +76,7 @@ var app = http.createServer(function(request, response) {
                 `<form action="/create_process" method="post">
                 <p> <input type="text" name="title" placeholder="제목을 입력하세요"> </p>
                 <p>
-                    <textarea name="description" placeholder="description"></textarea>
+                    <textarea name="description"></textarea>
                 </p>
                 <p>
                     <input type="submit">
@@ -110,16 +111,17 @@ var app = http.createServer(function(request, response) {
 
     } else if (pathName === '/update') {
         fs.readdir('./data', function(err, filelist) {
-            fs.readFile(`data/${queryData.id}`, 'utf-8', function(err, description) {
+            fs.readFile(`data/${queryData.id}`, 'utf-8', function(err, data) {
                 var title = queryData.id;
+                var description = data;
                 var list = templateList(filelist);
                 var template = templateHTML(title, list,
                     //hidden 타입을 통해, 어떤 문서를 수정해야할지 구분하기위해 원래 title 값을 저장
                     `<form action="/update_process" method="post">
-                        <input type="hidden" name="id" value="${title}">
+                        <input type="hidden" name="id" value="${title}>"
                         <p> <input type="text" name="title" placeholder="title" value="${title}"> </p>
                         <p>
-                            <textarea name="description" placeholder="description">${description}</textarea>
+                            <textarea name="description">${description}</textarea>
                         </p>
                         <p>
                             <input type="submit">
@@ -147,10 +149,9 @@ var app = http.createServer(function(request, response) {
             var id = post.id;
             var title = post.title;
             var description = post.description;
-
             //${id} 라는 파일을 ${title} 이라는 파일로 이름을 변경
             fs.rename(`data/${id}`, `data/${title}`, function(error) {
-                fs.writeFile(`data/${title}`, description, 'utf8', function(err) {
+                fs.writeFile(`data/${title}`, description, 'utf-8', function(err) {
                     response.writeHead(302, { Location: `/?id=${title}` });
                     response.end();
                 })
