@@ -41,31 +41,57 @@ var app = http.createServer(function(request, response) {
                 var list = template.list(topics);
                 var html = template.html(title, list,
                     `<h2>${title}</h2> ${description}`,
-                    `<a href="/create">CREATE</a>`);
-
+                    `<a href="/create">CREATE</a>`
+                );
                 response.writeHead(200);
                 response.end(html);
             });
 
         } else {
-            //쿼리에 따른 다른 페이지 (데이터)
-            fs.readdir('./data', function(err, filelist) {
-                var filteredId = path.parse(queryData.id).base;
-                fs.readFile(`data/${filteredId}`, 'utf-8', function(err, data) {
-                    var title = queryData.id;
-                    var sanitizeTitle = sanitizeHtml(title);
-                    var sanitizeDescription = sanitizeHtml(data, {
-                        allowedTags: ['h1']
-                    });
-                    var description = data;
-                    var list = template.list(filelist);
+            // //쿼리에 따른 다른 페이지 (데이터)
+            // fs.readdir('./data', function(err, filelist) {
+            //         var filteredId = path.parse(queryData.id).base;
+            // fs.readFile(`data/${filteredId}`, 'utf-8', function(err, data) {
+            //         var title = queryData.id;
+            //         var sanitizeTitle = sanitizeHtml(title);
+            //         var sanitizeDescription = sanitizeHtml(data, {
+            //             allowedTags: ['h1']
+            //         });
+            //         var description = data;
+            //         var list = template.list(filelist);
+            //         var html = template.html(title, list,
+            //             `<h2>${sanitizeTitle}</h2> ${sanitizeDescription}`,
+            //             `<a href="/create">CREATE</a> <a href="/update?id=${sanitizeTitle}">UPDATE</a>
+            //              <form action="delete_process" method="post">
+            //               <input type="hidden" name="id" value="${sanitizeTitle}">
+            //               <input type="submit" value="DELETE">
+            //              </form>`
+            //         );
+            //         response.writeHead(200);
+            //         response.end(html);
+            //     });
+            // });
+            // }
+
+            db.query(`SELECT * FROM topic`, function(error, topics) {
+                if (error) {
+                    throw error;
+                }
+                db.query(`SELECT * FROM topic WHERE id=?`, [queryData.id], function(error2, topic) {
+                    if (error2) {
+                        throw error2;
+                    }
+                    console.log(topic);
+                    var title = topic[0].title;
+                    var description = topic[0].description;
+                    var list = template.list(topics);
                     var html = template.html(title, list,
-                        `<h2>${sanitizeTitle}</h2> ${sanitizeDescription}`,
-                        `<a href="/create">CREATE</a> <a href="/update?id=${sanitizeTitle}">UPDATE</a>
-                         <form action="delete_process" method="post">
-                          <input type="hidden" name="id" value="${sanitizeTitle}">
-                          <input type="submit" value="DELETE">
-                         </form>`
+                        `<h2>${title}</h2> ${description}`,
+                        `<a href="/create">CREATE</a> <a href="/update?id=${queryData.id}">UPDATE</a>
+                          <form action="delete_process" method="post">
+                           <input type="hidden" name="id" value="${queryData.id}">
+                           <input type="submit" value="DELETE">
+                          </form>`
                     );
                     response.writeHead(200);
                     response.end(html);
