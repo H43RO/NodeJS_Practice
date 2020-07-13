@@ -77,16 +77,16 @@ var app = http.createServer(function(request, response) {
                 if (error) {
                     throw error;
                 }
-                db.query(`SELECT * FROM topic WHERE id=?`, [queryData.id], function(error2, topic) {
+                db.query(`SELECT * FROM topic LEFT JOIN author ON topic.author_id=author.id WHERE topic.id=?`, [queryData.id], function(error2, topic) {
                     if (error2) {
                         throw error2;
                     }
-                    // console.log(topic);
                     var title = topic[0].title;
                     var description = topic[0].description;
                     var list = template.list(topics);
                     var html = template.html(title, list,
-                        `<h2>${title}</h2> ${description}`,
+                        `<h2>${title}</h2> ${description}
+                        <p>by ${topic[0].name}</p>`,
                         `<a href="/create">CREATE</a> <a href="/update?id=${queryData.id}">UPDATE</a>
                           <form action="delete_process" method="post">
                            <input type="hidden" name="id" value="${queryData.id}">
@@ -118,22 +118,28 @@ var app = http.createServer(function(request, response) {
         // });
 
         db.query(`SELECT * FROM topic`, function(error, topics) {
-            var title = 'Create';
-            var list = template.list(topics);
-            var html = template.html(title, list,
-                `<form action="/create_process" method="post">
-                    <p> <input type="text" name="title" placeholder="제목을 입력하세요"> </p>
-                    <p>
-                        <textarea name="description" placeholder="내용을 입력하세요"></textarea>
-                    </p>
-                    <p>
-                        <input type="submit">
-                    </p>
-                </form>`,
-                `<a href="/create">CREATE</a>`
-            );
-            response.writeHead(200);
-            response.end(html);
+            db.query(`SELECT * FROM author`, function(error, authors) {
+                var title = 'Create';
+                var list = template.list(topics);
+                var html = template.html(title, list,
+                    `<form action="/create_process" method="post">
+                        <p> <input type="text" name="title" placeholder="제목을 입력하세요"> </p>
+                        <p>
+                            <textarea name="description" placeholder="내용을 입력하세요"></textarea>
+                        </p>
+                        <p>
+                            ${template.authorSelect(authors)}
+                        </p>
+                        <p>
+                            <input type="submit">
+                        </p>
+                        </form>`,
+                    `<a href="/create">CREATE</a>`
+                );
+                response.writeHead(200);
+                response.end(html);
+            });
+
         });
 
     } else if (pathName === '/create_process') {
@@ -160,7 +166,7 @@ var app = http.createServer(function(request, response) {
             // })
 
             db.query(`INSERT INTO topic (title,description, created, author_id)
-                VALUES(?, ?, NOW(), ?)`, [post.title, post.description, 1],
+                VALUES(?, ?, NOW(), ?)`, [post.title, post.description, post.author],
                 function(error, result) {
                     if (error) {
                         throw (error);
@@ -203,25 +209,29 @@ var app = http.createServer(function(request, response) {
                     if (error2) {
                         throw error2;
                     }
-                    var id = topic[0].id;
-                    var title = topic[0].title;
-                    var description = topic[0].description;
-                    var list = template.list(topics);
-                    var html = template.html(title, list,
-                        //hidden 타입을 통해, 어떤 문서를 수정해야할지 구분하기위해 원래 title 값을 저장
-                        `<form action="/update_process" method="post">
+                    db.query(`SELECT * FROM author`, function(error, authors) {
+                        var id = topic[0].id;
+                        var title = topic[0].title;
+                        var description = topic[0].description;
+                        var list = template.list(topics);
+                        var html = template.html(title, list,
+                            //hidden 타입을 통해, 어떤 문서를 수정해야할지 구분하기위해 원래 title 값을 저장
+                            `<form action="/update_process" method="post">
                             <input type="hidden" name="id" value="${id}">
                             <p> <input type="text" name="title" placeholder="title" value="${title}"> </p>
                             <p>
                                 <textarea name="description" placeholder="description">${description}</textarea>
                             </p>
                             <p>
+                                ${template.authorSelect(authors, topic[0].author_id)}
+                            </p>
+                            <p>
                                 <input type="submit">
                             </p>
                         </form>`, `'${title}' 문서 수정하기`);
-                    response.writeHead(200);
-                    response.end(html);
-
+                        response.writeHead(200);
+                        response.end(html);
+                    });
                 });
         });
     } else if (pathName === '/update_process') {
@@ -247,7 +257,7 @@ var app = http.createServer(function(request, response) {
             //     })
             // });
 
-            db.query(`UPDATE topic SET title=?,description=? WHERE id=?`, [title, description, id],
+            db.query(`UPDATE topic SET title=?,description=?,author_id=? WHERE id=?`, [title, description, post.author, id],
                 function(error, result) {
                     if (error) {
                         console.log("error");
