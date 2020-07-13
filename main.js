@@ -81,7 +81,7 @@ var app = http.createServer(function(request, response) {
                     if (error2) {
                         throw error2;
                     }
-                    console.log(topic);
+                    // console.log(topic);
                     var title = topic[0].title;
                     var description = topic[0].description;
                     var list = template.list(topics);
@@ -171,27 +171,58 @@ var app = http.createServer(function(request, response) {
         });
 
     } else if (pathName === '/update') {
-        fs.readdir('./data', function(err, filelist) {
-            var filteredId = path.parse(queryData.id).base;
-            //보안 이슈 방지
-            fs.readFile(`data/${filteredId}`, 'utf-8', function(err, description) {
-                var title = queryData.id;
-                var list = template.list(filelist);
-                var html = template.html(title, list,
-                    //hidden 타입을 통해, 어떤 문서를 수정해야할지 구분하기위해 원래 title 값을 저장
-                    `<form action="/update_process" method="post">
-                        <input type="hidden" name="id" value="${title}">
-                        <p> <input type="text" name="title" placeholder="title" value="${title}"> </p>
-                        <p>
-                            <textarea name="description" placeholder="description">${description}</textarea>
-                        </p>
-                        <p>
-                            <input type="submit">
-                        </p>
-                    </form>`, `'${title}' 문서 수정하기`);
-                response.writeHead(200);
-                response.end(html);
-            });
+        // fs.readdir('./data', function(err, filelist) {
+        //     var filteredId = path.parse(queryData.id).base;
+        //     //보안 이슈 방지
+        //     fs.readFile(`data/${filteredId}`, 'utf-8', function(err, description) {
+        //         var title = queryData.id;
+        //         var list = template.list(filelist);
+        //         var html = template.html(title, list,
+        //             //hidden 타입을 통해, 어떤 문서를 수정해야할지 구분하기위해 원래 title 값을 저장
+        //             `<form action="/update_process" method="post">
+        //                 <input type="hidden" name="id" value="${title}">
+        //                 <p> <input type="text" name="title" placeholder="title" value="${title}"> </p>
+        //                 <p>
+        //                     <textarea name="description" placeholder="description">${description}</textarea>
+        //                 </p>
+        //                 <p>
+        //                     <input type="submit">
+        //                 </p>
+        //             </form>`, `'${title}' 문서 수정하기`);
+        //         response.writeHead(200);
+        //         response.end(html);
+        //     });
+        // });
+
+        db.query('SELECT * FROM topic', function(error, topics) {
+            if (error) {
+                throw error;
+            }
+            db.query(`SELECT * FROM topic WHERE id=?`, [queryData.id],
+                function(error2, topic) {
+                    if (error2) {
+                        throw error2;
+                    }
+                    var id = topic[0].id;
+                    var title = topic[0].title;
+                    var description = topic[0].description;
+                    var list = template.list(topics);
+                    var html = template.html(title, list,
+                        //hidden 타입을 통해, 어떤 문서를 수정해야할지 구분하기위해 원래 title 값을 저장
+                        `<form action="/update_process" method="post">
+                            <input type="hidden" name="id" value="${id}">
+                            <p> <input type="text" name="title" placeholder="title" value="${title}"> </p>
+                            <p>
+                                <textarea name="description" placeholder="description">${description}</textarea>
+                            </p>
+                            <p>
+                                <input type="submit">
+                            </p>
+                        </form>`, `'${title}' 문서 수정하기`);
+                    response.writeHead(200);
+                    response.end(html);
+
+                });
         });
     } else if (pathName === '/update_process') {
         var body = '';
@@ -200,10 +231,6 @@ var app = http.createServer(function(request, response) {
         // -> data라는 인자를 통해 수신한 데이터 추출
         request.on('data', function(data) {
             body += data;
-            //데이터가 너무 크면 연결 해제
-            if (body.length > 1e6) {
-                request.connection.destroy();
-            }
         });
         //더이상 수신할 데이터가 없으면 function() 호출
         request.on('end', function() {
@@ -212,13 +239,24 @@ var app = http.createServer(function(request, response) {
             var title = post.title;
             var description = post.description;
 
-            //${id} 라는 파일을 ${title} 이라는 파일로 이름을 변경
-            fs.rename(`data/${id}`, `data/${title}`, function(error) {
-                fs.writeFile(`data/${title}`, description, 'utf8', function(err) {
-                    response.writeHead(302, { Location: `/?id=${title}` });
+            // //${id} 라는 파일을 ${title} 이라는 파일로 이름을 변경
+            // fs.rename(`data/${id}`, `data/${title}`, function(error) {
+            //     fs.writeFile(`data/${title}`, description, 'utf8', function(err) {
+            //         response.writeHead(302, { Location: `/?id=${title}` });
+            //         response.end();
+            //     })
+            // });
+
+            db.query(`UPDATE topic SET title=?,description=? WHERE id=?`, [title, description, id],
+                function(error, result) {
+                    if (error) {
+                        console.log("error");
+                        throw error;
+                    }
+                    response.writeHead(302, { Location: `/?id=${id}` });
                     response.end();
-                })
-            });
+                }
+            );
         });
     } else if (pathName === '/delete_process') {
         var body = '';
@@ -227,19 +265,23 @@ var app = http.createServer(function(request, response) {
         // -> data라는 인자를 통해 수신한 데이터 추출
         request.on('data', function(data) {
             body += data;
-            //데이터가 너무 크면 연결 해제
-            if (body.length > 1e6) {
-                request.connection.destroy();
-            }
         });
         //더이상 수신할 데이터가 없으면 function() 호출
         request.on('end', function() {
             var post = qs.parse(body);
             var id = post.id;
-            var filteredId = path.parse(id).base;
-            //지정한 파일 삭제
-            fs.unlink(`data/${filteredId}`, function(err) {
-                //홈 페이지로 리다이렉션
+            // var filteredId = path.parse(id).base;
+            // //지정한 파일 삭제
+            // fs.unlink(`data/${filteredId}`, function(err) {
+            //     //홈 페이지로 리다이렉션
+            //     response.writeHead(302, { Location: `/` });
+            //     response.end();
+            // });
+
+            db.query(`DELETE FROM topic WHERE id=?`, [id], function(error, result) {
+                if (error) {
+                    throw error;
+                }
                 response.writeHead(302, { Location: `/` });
                 response.end();
             });
