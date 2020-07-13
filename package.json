@@ -20,6 +20,7 @@
     "homepage": "https://github.com/H43RO/NodeJS_Practice#readme",
     "description": "",
     "dependencies": {
+        "mysql": "^2.18.1",
         "sanitize-html": "^1.27.0"
     }
 }

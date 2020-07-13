@@ -5,6 +5,18 @@ var qs = require('querystring');
 var template = require('./lib/template.js');
 var path = require('path');
 var sanitizeHtml = require('sanitize-html');
+var mysql = require('mysql');
+
+//MySQL 서버 접속을 위한 객체
+var db = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: 'rlaguswns5',
+    database: 'opentutorials'
+});
+
+//MySQL 서버 접속
+db.connect();
 
 var app = http.createServer(function(request, response) {
     var _url = request.url;
@@ -13,16 +25,28 @@ var app = http.createServer(function(request, response) {
     if (pathName === '/') {
         if (queryData.id === undefined) {
             //홈 페이지
-            fs.readdir('./data', function(err, filelist) {
+            // fs.readdir('./data', function(err, filelist) {
+            //     var title = 'Welcome';
+            //     var description = 'Hello, Node.js!';
+            //     var list = template.list(filelist);
+            //     var html = template.html(title, list,
+            //         `<h2>${title}</h2> ${description}`,
+            //         `<a href="/create">CREATE</a>`);
+            //     response.writeHead(200);
+            //     response.end(html);
+            // });
+            db.query(`SELECT * FROM topic`, function(error, topics) {
                 var title = 'Welcome';
                 var description = 'Hello, Node.js!';
-                var list = template.list(filelist);
+                var list = template.list(topics);
                 var html = template.html(title, list,
                     `<h2>${title}</h2> ${description}`,
                     `<a href="/create">CREATE</a>`);
+
                 response.writeHead(200);
                 response.end(html);
             });
+
         } else {
             //쿼리에 따른 다른 페이지 (데이터)
             fs.readdir('./data', function(err, filelist) {
@@ -65,7 +89,6 @@ var app = http.createServer(function(request, response) {
             </form>`, '');
             response.writeHead(200);
             response.end(html);
-
         });
     } else if (pathName === '/create_process') {
         var body = '';
