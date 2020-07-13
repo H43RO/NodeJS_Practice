@@ -99,23 +99,43 @@ var app = http.createServer(function(request, response) {
             });
         }
     } else if (pathName === '/create') {
-        fs.readdir('./data', function(err, filelist) {
-            var title = 'Welcome';
-            var description = 'Hello, Node.js!';
-            var list = template.list(filelist);
+        // fs.readdir('./data', function(err, filelist) {
+        //     var title = 'Welcome';
+        //     var description = 'Hello, Node.js!';
+        //     var list = template.list(filelist);
+        //     var html = template.html(title, list,
+        //         `<form action="/create_process" method="post">
+        //         <p> <input type="text" name="title" placeholder="제목을 입력하세요"> </p>
+        //         <p>
+        //             <textarea name="description" placeholder="description"></textarea>
+        //         </p>
+        //         <p>
+        //             <input type="submit">
+        //         </p>
+        //     </form>`, '');
+        //     response.writeHead(200);
+        //     response.end(html);
+        // });
+
+        db.query(`SELECT * FROM topic`, function(error, topics) {
+            var title = 'Create';
+            var list = template.list(topics);
             var html = template.html(title, list,
                 `<form action="/create_process" method="post">
-                <p> <input type="text" name="title" placeholder="제목을 입력하세요"> </p>
-                <p>
-                    <textarea name="description" placeholder="description"></textarea>
-                </p>
-                <p>
-                    <input type="submit">
-                </p>
-            </form>`, '');
+                    <p> <input type="text" name="title" placeholder="제목을 입력하세요"> </p>
+                    <p>
+                        <textarea name="description" placeholder="내용을 입력하세요"></textarea>
+                    </p>
+                    <p>
+                        <input type="submit">
+                    </p>
+                </form>`,
+                `<a href="/create">CREATE</a>`
+            );
             response.writeHead(200);
             response.end(html);
         });
+
     } else if (pathName === '/create_process') {
         var body = '';
 
@@ -131,13 +151,23 @@ var app = http.createServer(function(request, response) {
         //더이상 수신할 데이터가 없으면 function() 호출
         request.on('end', function() {
             var post = qs.parse(body);
-            var title = post.title;
-            var description = post.description;
+            // var title = post.title;
+            // var description = post.description;
 
-            fs.writeFile(`data/${title}`, description, 'utf-8', function(err) {
-                response.writeHead(302, { Location: `/?id=${title}` });
-                response.end();
-            })
+            // fs.writeFile(`data/${title}`, description, 'utf-8', function(err) {
+            //     response.writeHead(302, { Location: `/?id=${title}` });
+            //     response.end();
+            // })
+
+            db.query(`INSERT INTO topic (title,description, created, author_id)
+                VALUES(?, ?, NOW(), ?)`, [post.title, post.description, 1],
+                function(error, result) {
+                    if (error) {
+                        throw (error);
+                    }
+                    response.writeHead(302, { Location: `/?id=${result.insertId}` });
+                    response.end();
+                })
         });
 
     } else if (pathName === '/update') {
