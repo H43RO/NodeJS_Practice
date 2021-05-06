@@ -21,6 +21,6 @@
     "description": "",
     "dependencies": {
         "mysql": "^2.18.1",
-        "sanitize-html": "^1.27.0"
+        "sanitize-html": "^2.3.2"
     }
 }
